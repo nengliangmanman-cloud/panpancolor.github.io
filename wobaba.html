@@ -250,7 +250,7 @@ var SCENES={
       {type:'mushroom',e:'🍄',w:28,h:28,spd:1.8,pts:25,wt:1},
       {type:'mosquito',e:'🦟',w:28,h:28,spd:3.5,pts:-15,wt:3},
       {type:'snake',e:'🐍',w:36,h:36,spd:2.5,pts:-99,wt:1},
-      {type:'toilet',e:'🚽',w:38,h:38,spd:2.6,pts:-99,wt:1},
+      {type:'dog',e:'🐕',w:40,h:40,spd:3.2,pts:-99,wt:2},
     ],
     poolD:[
       {type:'poop',e:'💩',w:36,h:36,spd:2.4,pts:15,wt:5},
@@ -295,6 +295,7 @@ function sfxStart(){playTone([330,440,523,659],0.4,'triangle',0.18);}
 function sfxWin(){playTone([523,659,784,1047,1047],0.6,'triangle',0.22);}
 function sfxBoss(){playTone([200,180,160,140,120],0.5,'square',0.35);}
 function sfxMosquito(){playTone([1200,1400,1200,1000,1200],0.3,'sine',0.15);}
+function sfxBark(){playTone([180,220,180,140],0.3,'square',0.3);}
 function sfxStar(){playTone([800,1000,1200,1000,800],0.4,'triangle',0.2);}
 function sfxBird(){playTone([600,800,1000],0.3,'sine',0.2);}
 
@@ -631,6 +632,9 @@ function handleItem(f,vx,vy){
       if(currentScene==='office'&&!invincible){sfxBoss();endGame(false,'被老板抓到了！💼 拉屎被终止！');return false;}
       else if(invincible){pill('无敌挡住！',vx,vy,'#f0c000');break;}
       break;
+    case 'dog':
+      if(!invincible){sfxBark();endGame(false,'被狗狗吃掉了！🐕 粑粑的末日！');return false;}
+      else{pill('无敌挡住！',vx,vy,'#f0c000');break;}
     case 'toilet':
       if(!invincible){sfxFlush();endGame(false,'被马桶吸走了！💀');return false;}
       else{pill('无敌挡住！',vx,vy,'#f0c000');break;}
@@ -749,11 +753,18 @@ function update(dt){
   // 暗视野更新（家里）
   if(sc.darkMode) drawDarkOverlay();
 
-  // 野外蚊子Z字飞行
+  // 野外特殊行为：蚊子Z字 + 狗狗左右追踪粑粑
   if(currentScene==='wild'){
     for(var mi=0;mi<fallers.length;mi++){
-      if(fallers[mi].type==='mosquito'){
-        fallers[mi].vx=(Math.sin(fallers[mi].y/18)*3);
+      var mf=fallers[mi];
+      if(mf.type==='mosquito'){
+        mf.vx=Math.sin(mf.y/18)*3;
+      } else if(mf.type==='dog'&&mode==='poop'){
+        // 狗狗追踪：朝粑粑X方向偏移，越低越准
+        var trackStr=Math.min(0.06, mf.y/4000);
+        var targetX=px+pw/2-mf.w/2;
+        mf.x=mf.x+(targetX-mf.x)*trackStr;
+        mf.x=Math.max(0,Math.min(W-mf.w,mf.x));
       }
     }
   }
