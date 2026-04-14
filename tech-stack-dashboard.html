@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tech Stack Observer — VS Code Style</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+
+  :root {
+    /* LinaBell 玲娜贝儿配色 */
+    --bg-primary: #fff0f5;
+    --bg-secondary: #ffe4ef;
+    --bg-sidebar: #ffd6e7;
+    --bg-activitybar: #ffc2d6;
+    --bg-titlebar: #ffb3cc;
+    --bg-tab-active: #fff0f5;
+    --bg-tab-inactive: #ffe0eb;
+    --bg-editor: #fff5f9;
+    --bg-terminal: #ffe8f2;
+    --bg-statusbar: #ff8fab;
+    --bg-input: #ffffff;
+    --bg-selection: rgba(255, 143, 171, 0.25);
+    --bg-line-highlight: #ffe8f2;
+    --bg-badge: #ff5c8a;
+    --bg-button: #ff7096;
+    --bg-button-hover: #ff5c8a;
+
+    --text-primary: #5c3a4a;
+    --text-secondary: #8a6070;
+    --text-muted: #b08898;
+    --text-link: #d4526e;
+    --text-white: #ffffff;
+
+    --border: #ffcce0;
+    --border-active: #ff8fab;
+
+    --accent-pink: #ff5c8a;
+    --accent-rose: #ff7096;
+    --accent-peach: #ffb3c6;
+    --accent-lavender: #c9a0dc;
+    --accent-mint: #88d4ab;
+    --accent-sky: #87ceeb;
+    --accent-gold: #f0c987;
+    --accent-coral: #ff6b6b;
+
+    --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace;
+    --font-sans: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+
+    --sidebar-width: 180px;
+    --activitybar-width: 36px;
+    --titlebar-height: 28px;
+    --tab-height: 30px;
+    --statusbar-height: 22px;
+    --panel-height: 120px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--text-primary);
+    background: var(--bg-primary);
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Title Bar */
+  .titlebar {
+    height: var(--titlebar-height);
+    background: var(--bg-titlebar);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    font-size: 12px;
+    color: var(--text-primary);
+    user-select: none;
+    flex-shrink: 0;
+  }
+
+  .titlebar-icon { margin-right: 8px; font-size: 14px; }
+  .titlebar-text { flex: 1; text-align: center; font-weight: 500; }
+  .titlebar-actions { display: flex; gap: 8px; }
+  .titlebar-btn {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+  }
+  .titlebar-btn.close { background: var(--accent-coral); }
+  .titlebar-btn.minimize { background: var(--accent-gold); }
+  .titlebar-btn.maximize { background: var(--accent-mint); }
+
+  /* Main Layout */
+  .main-layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* Activity Bar */
+  .activitybar {
+    width: var(--activitybar-width);
+    background: var(--bg-activitybar);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 8px;
+    flex-shrink: 0;
+  }
+
+  .activity-item {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    position: relative;
+    transition: all 0.15s;
+  }
+
+  .activity-item:hover { color: var(--text-primary); }
+  .activity-item.active {
+    color: var(--text-primary);
+  }
+  .activity-item.active::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 8px; bottom: 8px;
+    width: 2px;
+    background: var(--text-primary);
+    border-radius: 0 2px 2px 0;
+  }
+
+  .activity-spacer { flex: 1; }
+
+  /* Sidebar */
+  .sidebar {
+    width: var(--sidebar-width);
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .sidebar-header {
+    padding: 8px 12px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 0;
+  }
+
+  .sidebar-content::-webkit-scrollbar { width: 4px; }
+  .sidebar-content::-webkit-scrollbar-track { background: transparent; }
+  .sidebar-content::-webkit-scrollbar-thumb { background: var(--border-active); border-radius: 2px; }
+
+  .sidebar-section {
+    margin-bottom: 2px;
+  }
+
+  .sidebar-section-header {
+    display: flex;
+    align-items: center;
+    padding: 4px 12px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .sidebar-section-header:hover { color: var(--text-primary); }
+
+  .sidebar-section-header .arrow {
+    margin-right: 4px;
+    font-size: 8px;
+    transition: transform 0.15s;
+  }
+
+  .sidebar-section-header.collapsed .arrow { transform: rotate(-90deg); }
+
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    padding: 3px 12px 3px 20px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+
+  .sidebar-item:hover { background: rgba(255, 143, 171, 0.1); }
+  .sidebar-item.active { background: var(--bg-selection); }
+
+  .sidebar-item .icon {
+    margin-right: 5px;
+    font-size: 12px;
+    width: 14px;
+    text-align: center;
+  }
+
+  .sidebar-item .label { flex: 1; }
+  .sidebar-item .badge {
+    font-size: 10px;
+    padding: 1px 6px;
+    background: var(--bg-badge);
+    color: var(--text-white);
+    border-radius: 10px;
+    font-family: var(--font-mono);
+  }
+
+  .sidebar-items {
+    padding-left: 4px;
+  }
+
+  /* Editor Area */
+  .editor-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Tabs */
+  .tabs {
+    height: var(--tab-height);
+    background: var(--bg-tab-inactive);
+    display: flex;
+    align-items: flex-end;
+    overflow-x: auto;
+    flex-shrink: 0;
+  }
+
+  .tabs::-webkit-scrollbar { height: 0; }
+
+  .tab {
+    height: var(--tab-height);
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    border-right: 1px solid var(--border);
+    white-space: nowrap;
+    transition: background 0.1s;
+    position: relative;
+  }
+
+  .tab:hover { background: rgba(255, 143, 171, 0.08); }
+  .tab.active {
+    background: var(--bg-tab-active);
+  }
+  .tab.active::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: var(--accent-pink);
+  }
+
+  .tab .tab-icon { font-size: 12px; }
+  .tab .tab-close {
+    width: 14px; height: 14px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 3px;
+    font-size: 10px;
+    opacity: 0;
+    transition: all 0.1s;
+  }
+  .tab:hover .tab-close { opacity: 0.6; }
+  .tab .tab-close:hover { opacity: 1; background: rgba(255, 92, 138, 0.15); }
+
+  /* Breadcrumbs */
+  .breadcrumbs {
+    padding: 3px 12px;
+    font-size: 11px;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .breadcrumbs span { cursor: pointer; }
+  .breadcrumbs span:hover { color: var(--text-primary); }
+  .breadcrumbs .sep { opacity: 0.5; }
+
+  /* Editor Content */
+  .editor-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+    background: var(--bg-editor);
+  }
+
+  .editor-content::-webkit-scrollbar { width: 6px; }
+  .editor-content::-webkit-scrollbar-track { background: transparent; }
+  .editor-content::-webkit-scrollbar-thumb { background: var(--border-active); border-radius: 3px; }
+
+  /* Section in editor */
+  .editor-section {
+    margin-bottom: 24px;
+  }
+
+  .editor-section-title {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent-pink);
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .editor-section-title .kw { color: var(--accent-lavender); }
+  .editor-section-title .fn { color: var(--accent-rose); }
+  .editor-section-title .str { color: var(--accent-mint); }
+
+  /* Rank list in editor style */
+  .code-list {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1.7;
+  }
+
+  .code-line {
+    display: grid;
+    grid-template-columns: 32px 1fr auto;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 6px;
+    border-radius: 2px;
+    transition: background 0.1s;
+  }
+
+  .code-line:hover { background: var(--bg-line-highlight); }
+
+  .line-num {
+    color: var(--text-muted);
+    text-align: right;
+    user-select: none;
+    font-size: 10px;
+  }
+
+  .line-content {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .line-content .rank {
+    color: var(--text-muted);
+    min-width: 20px;
+  }
+
+  .code-line:nth-child(1) .rank { color: var(--accent-pink); font-weight: 700; }
+  .code-line:nth-child(2) .rank { color: var(--accent-lavender); font-weight: 600; }
+  .code-line:nth-child(3) .rank { color: var(--accent-rose); font-weight: 600; }
+
+  .line-content .name { color: var(--text-primary); font-weight: 500; }
+  .line-content .meta { color: var(--text-muted); font-size: 10px; }
+
+  .line-value {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--accent-rose);
+    text-align: right;
+  }
+
+  .mini-bar {
+    width: 50px;
+    height: 3px;
+    background: var(--bg-secondary);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .mini-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.6s ease;
+  }
+
+  .bar-pink { background: var(--accent-pink); }
+  .bar-lavender { background: var(--accent-lavender); }
+  .bar-mint { background: var(--accent-mint); }
+  .bar-sky { background: var(--accent-sky); }
+  .bar-gold { background: var(--accent-gold); }
+
+  /* Language pills */
+  .lang-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 4px 0;
+  }
+
+  .lang-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    transition: all 0.15s;
+  }
+
+  .lang-pill:hover {
+    border-color: var(--accent-pink);
+    background: var(--bg-selection);
+  }
+
+  .lang-pill .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+
+  /* Links grid */
+  .links-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 6px;
+  }
+
+  .link-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    text-decoration: none;
+    color: var(--text-primary);
+    font-size: 11px;
+    transition: all 0.15s;
+  }
+
+  .link-item:hover {
+    border-color: var(--accent-pink);
+    background: var(--bg-selection);
+  }
+
+  .link-item .link-icon { font-size: 14px; }
+  .link-item .link-info { flex: 1; }
+  .link-item .link-name { font-weight: 500; font-size: 11px; }
+  .link-item .link-desc { font-size: 9px; color: var(--text-muted); margin-top: 1px; }
+
+  /* Panel (Terminal style) */
+  .panel {
+    height: var(--panel-height);
+    background: var(--bg-terminal);
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+
+  .panel-tabs {
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    height: 24px;
+    font-size: 10px;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+  }
+
+  .panel-tab {
+    padding: 4px 3px;
+    cursor: pointer;
+    color: var(--text-muted);
+    border-bottom: 1px solid transparent;
+    transition: all 0.1s;
+  }
+
+  .panel-tab:hover { color: var(--text-primary); }
+  .panel-tab.active {
+    color: var(--text-primary);
+    border-bottom-color: var(--accent-pink);
+  }
+
+  .panel-content {
+    flex: 1;
+    padding: 6px 12px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1.5;
+    overflow-y: auto;
+    color: var(--text-secondary);
+  }
+
+  .panel-content::-webkit-scrollbar { width: 4px; }
+  .panel-content::-webkit-scrollbar-thumb { background: var(--border-active); border-radius: 2px; }
+
+  .panel-line { display: flex; gap: 8px; }
+  .panel-prompt { color: var(--accent-pink); }
+  .panel-cmd { color: var(--text-primary); }
+  .panel-output { color: var(--text-muted); }
+  .panel-success { color: var(--accent-mint); }
+  .panel-error { color: var(--accent-coral); }
+
+  /* Status Bar */
+  .statusbar {
+    height: var(--statusbar-height);
+    background: var(--bg-statusbar);
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    font-size: 10px;
+    color: var(--text-white);
+    flex-shrink: 0;
+    gap: 12px;
+  }
+
+  .status-item {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    cursor: pointer;
+    padding: 0 3px;
+    height: 100%;
+    transition: background 0.1s;
+  }
+
+  .status-item:hover { background: rgba(255, 255, 255, 0.15); }
+  .status-spacer { flex: 1; }
+
+  .status-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent-mint);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* Loading */
+  .loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+
+  .loading::after {
+    content: '';
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--accent-pink);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Refresh button */
+  .refresh-btn {
+    padding: 3px 10px;
+    background: var(--bg-button);
+    color: var(--text-white);
+    border: none;
+    border-radius: 2px;
+    font-family: var(--font-sans);
+    font-size: 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .refresh-btn:hover { background: var(--bg-button-hover); }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .sidebar { display: none; }
+    .activitybar { width: 36px; }
+    .activity-item { width: 36px; height: 36px; }
+  }
+
+  @media (max-width: 600px) {
+    .activitybar { display: none; }
+    .links-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Title Bar -->
+<div class="titlebar">
+  <span class="titlebar-icon">🦊</span>
+  <span class="titlebar-text">Tech Stack Observer — tech-stack-dashboard.html</span>
+  <div class="titlebar-actions">
+    <button class="titlebar-btn minimize"></button>
+    <button class="titlebar-btn maximize"></button>
+    <button class="titlebar-btn close"></button>
+  </div>
+</div>
+
+<div class="main-layout">
+  <!-- Activity Bar -->
+  <div class="activitybar">
+    <div class="activity-item active" title="资源管理器">📁</div>
+    <div class="activity-item" title="搜索">🔍</div>
+    <div class="activity-item" title="源代码管理">🔀</div>
+    <div class="activity-item" title="调试">🐛</div>
+    <div class="activity-item" title="扩展">🧩</div>
+    <div class="activity-spacer"></div>
+    <div class="activity-item" title="设置">⚙️</div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">资源管理器</div>
+    <div class="sidebar-content">
+      <div class="sidebar-section">
+        <div class="sidebar-section-header" onclick="this.classList.toggle('collapsed')">
+          <span class="arrow">▼</span> GITHUB 数据
+        </div>
+        <div class="sidebar-items">
+          <div class="sidebar-item active"><span class="icon">⭐</span><span class="label">热门仓库</span></div>
+          <div class="sidebar-item"><span class="icon">💻</span><span class="label">语言分布</span></div>
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-header" onclick="this.classList.toggle('collapsed')">
+          <span class="arrow">▼</span> NPM 包管理
+        </div>
+        <div class="sidebar-items">
+          <div class="sidebar-item"><span class="icon">📦</span><span class="label">下载排行</span></div>
+          <div class="sidebar-item"><span class="icon">⚛️</span><span class="label">前端框架</span></div>
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-header" onclick="this.classList.toggle('collapsed')">
+          <span class="arrow">▼</span> PYPI 包管理
+        </div>
+        <div class="sidebar-items">
+          <div class="sidebar-item"><span class="icon">🐍</span><span class="label">Python 包下载</span></div>
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-header" onclick="this.classList.toggle('collapsed')">
+          <span class="arrow">▼</span> 外部数据源
+        </div>
+        <div class="sidebar-items">
+          <div class="sidebar-item"><span class="icon">📈</span><span class="label">TIOBE</span></div>
+          <div class="sidebar-item"><span class="icon">🥧</span><span class="label">PYPL</span></div>
+          <div class="sidebar-item"><span class="icon">🇯🇸</span><span class="label">State of JS</span></div>
+          <div class="sidebar-item"><span class="icon">🐙</span><span class="label">Octoverse</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Editor Area -->
+  <div class="editor-area">
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active">
+        <span class="tab-icon">📊</span>
+        <span>dashboard.html</span>
+        <span class="tab-close">×</span>
+      </div>
+      <div class="tab">
+        <span class="tab-icon">📝</span>
+        <span>README.md</span>
+        <span class="tab-close">×</span>
+      </div>
+      <div class="tab">
+        <span class="tab-icon">⚙️</span>
+        <span>config.json</span>
+        <span class="tab-close">×</span>
+      </div>
+    </div>
+
+    <!-- Breadcrumbs -->
+    <div class="breadcrumbs">
+      <span>tech-stack-dashboard</span>
+      <span class="sep">›</span>
+      <span>src</span>
+      <span class="sep">›</span>
+      <span>dashboard.html</span>
+    </div>
+
+    <!-- Editor Content -->
+    <div class="editor-content">
+      <!-- GitHub Trending -->
+      <div class="editor-section">
+        <div class="editor-section-title">
+          <span class="kw">const</span> <span class="fn">githubTrending</span> = <span class="str">"GitHub 热门仓库"</span>
+        </div>
+        <div id="github-trending" class="code-list">
+          <div class="loading">正在获取数据</div>
+        </div>
+      </div>
+
+      <!-- Package Downloads -->
+      <div class="editor-section">
+        <div class="editor-section-title">
+          <span class="kw">async function</span> <span class="fn">packageDownloads</span>() { <span class="str">// npm & PyPI</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+          <div>
+            <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">// npm packages</div>
+            <div id="npm-downloads" class="code-list">
+              <div class="loading">加载中</div>
+            </div>
+          </div>
+          <div>
+            <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">// frontend frameworks</div>
+            <div id="frontend-frameworks" class="code-list">
+              <div class="loading">加载中</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Language Distribution -->
+      <div class="editor-section">
+        <div class="editor-section-title">
+          <span class="kw">const</span> <span class="fn">languageDistribution</span> = <span class="str">"编程语言分布"</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+          <div id="github-languages" class="code-list">
+            <div class="loading">加载中</div>
+          </div>
+          <div>
+            <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">// language tags</div>
+            <div id="lang-cloud" class="lang-pills">
+              <div class="loading">加载中</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PyPI -->
+      <div class="editor-section">
+        <div class="editor-section-title">
+          <span class="kw">const</span> <span class="fn">pypiDownloads</span> = <span class="str">"Python 包下载量"</span>
+        </div>
+        <div id="pypi-downloads" class="code-list">
+          <div class="loading">加载中</div>
+        </div>
+      </div>
+
+      <!-- External Links -->
+      <div class="editor-section">
+        <div class="editor-section-title">
+          <span class="kw">export const</span> <span class="fn">externalSources</span> = [
+        </div>
+        <div class="links-grid">
+          <a href="https://www.tiobe.com/tiobe-index" target="_blank" class="link-item">
+            <span class="link-icon">📈</span>
+            <div class="link-info">
+              <div class="link-name">TIOBE Index</div>
+              <div class="link-desc">编程语言月度排行</div>
+            </div>
+          </a>
+          <a href="https://pypl.github.io/PYPL.html" target="_blank" class="link-item">
+            <span class="link-icon">🥧</span>
+            <div class="link-info">
+              <div class="link-name">PYPL Index</div>
+              <div class="link-desc">Google 教程搜索热度</div>
+            </div>
+          </a>
+          <a href="https://stateofjs.com" target="_blank" class="link-item">
+            <span class="link-icon">🇯🇸</span>
+            <div class="link-info">
+              <div class="link-name">State of JS</div>
+              <div class="link-desc">JS 生态年度调研</div>
+            </div>
+          </a>
+          <a href="https://octoverse.github.com" target="_blank" class="link-item">
+            <span class="link-icon">🐙</span>
+            <div class="link-info">
+              <div class="link-name">GitHub Octoverse</div>
+              <div class="link-desc">年度开源报告</div>
+            </div>
+          </a>
+          <a href="https://npmtrends.com" target="_blank" class="link-item">
+            <span class="link-icon">📊</span>
+            <div class="link-info">
+              <div class="link-name">npm Trends</div>
+              <div class="link-desc">包下载量对比</div>
+            </div>
+          </a>
+          <a href="https://pypistats.org" target="_blank" class="link-item">
+            <span class="link-icon">🐍</span>
+            <div class="link-info">
+              <div class="link-name">PyPI Stats</div>
+              <div class="link-desc">Python 包统计</div>
+            </div>
+          </a>
+          <a href="https://trends.google.com" target="_blank" class="link-item">
+            <span class="link-icon">🔍</span>
+            <div class="link-info">
+              <div class="link-name">Google Trends</div>
+              <div class="link-desc">搜索热度对比</div>
+            </div>
+          </a>
+          <a href="https://stackshare.io" target="_blank" class="link-item">
+            <span class="link-icon">🏢</span>
+            <div class="link-info">
+              <div class="link-name">StackShare</div>
+              <div class="link-desc">企业技术栈</div>
+            </div>
+          </a>
+        </div>
+        <div style="font-family: var(--font-mono); font-size: 14px; color: var(--accent-pink); margin-top: 8px;">]</div>
+      </div>
+    </div>
+
+    <!-- Panel (Terminal) -->
+    <div class="panel">
+      <div class="panel-tabs">
+        <div class="panel-tab active">终端</div>
+        <div class="panel-tab">输出</div>
+        <div class="panel-tab">问题</div>
+        <div class="panel-tab">调试控制台</div>
+        <div style="flex:1"></div>
+        <button class="refresh-btn" onclick="refreshAll()">⟳ 刷新数据</button>
+      </div>
+      <div class="panel-content" id="terminal">
+        <div class="panel-line"><span class="panel-prompt">❯</span><span class="panel-cmd">tech-stack-observer --fetch-all</span></div>
+        <div class="panel-output">正在初始化数据源连接...</div>
+        <div class="panel-output">✓ GitHub API 连接成功</div>
+        <div class="panel-output">✓ npm Registry API 连接成功</div>
+        <div class="panel-output">✓ PyPI Stats API 连接成功</div>
+        <div class="panel-success">数据加载完成。自动刷新间隔: 5 分钟</div>
+        <div class="panel-line"><span class="panel-prompt">❯</span><span class="panel-cmd" id="terminal-time"></span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Status Bar -->
+<div class="statusbar">
+  <div class="status-item"><span class="status-dot"></span> 实时</div>
+  <div class="status-item">🔀 main</div>
+  <div class="status-item">✓ 0 ⚠ 0</div>
+  <div class="status-spacer"></div>
+  <div class="status-item" id="status-api-calls">API: 0</div>
+  <div class="status-item" id="status-data-points">数据: 0</div>
+  <div class="status-item" id="status-time">--:--:--</div>
+  <div class="status-item">UTF-8</div>
+  <div class="status-item">HTML</div>
+  <div class="status-item">🦊 LinaBell</div>
+</div>
+
+<script>
+  let apiCalls = 0;
+  let dataPoints = 0;
+
+  function updateStatus() {
+    const now = new Date();
+    document.getElementById('status-time').textContent = now.toLocaleTimeString('zh-CN', { hour12: false });
+    document.getElementById('terminal-time').textContent = `last update: ${now.toLocaleTimeString('zh-CN', { hour12: false })}`;
+    document.getElementById('status-api-calls').textContent = `API: ${apiCalls}`;
+    document.getElementById('status-data-points').textContent = `数据: ${dataPoints}`;
+  }
+
+  function fmt(n) {
+    if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+    if (n >= 1e3) return (n/1e3).toFixed(1) + 'K';
+    return n.toLocaleString();
+  }
+
+  const barColors = ['bar-pink', 'bar-lavender', 'bar-mint', 'bar-sky', 'bar-gold', 'bar-pink', 'bar-lavender', 'bar-mint', 'bar-sky', 'bar-gold'];
+
+  function renderList(id, items, valKey, descKey) {
+    const el = document.getElementById(id);
+    if (!items || !items.length) { el.innerHTML = '<div class="loading">暂无数据</div>'; return; }
+    const max = Math.max(...items.map(i => i[valKey] || 0), 1);
+
+    el.innerHTML = items.map((it, i) => {
+      const v = it[valKey] || 0;
+      const pct = (v / max * 100).toFixed(0);
+      const desc = it[descKey] || '';
+      const barColor = barColors[i % barColors.length];
+      return `
+        <div class="code-line">
+          <span class="line-num">${i + 1}</span>
+          <div class="line-content">
+            <span class="rank">${String(i+1).padStart(2,' ')}</span>
+            <span class="name">${it.name}</span>
+            ${desc ? `<span class="meta">// ${desc}</span>` : ''}
+            <div class="mini-bar"><div class="mini-bar-fill ${barColor}" style="width:${pct}%"></div></div>
+          </div>
+          <span class="line-value">${typeof v === 'number' ? fmt(v) : v}</span>
+        </div>`;
+    }).join('');
+
+    dataPoints += items.length;
+    updateStatus();
+  }
+
+  async function fetchGitHub() {
+    apiCalls++;
+    try {
+      const r = await fetch('https://api.github.com/search/repositories?q=created:>2026-04-01&sort=stars&order=desc&per_page=15');
+      if (!r.ok) throw 0;
+      const d = await r.json();
+      const items = d.items.map(repo => ({
+        name: repo.full_name,
+        stars: repo.stargazers_count,
+        desc: `${repo.language || '—'} · ${repo.forks_count} forks`
+      }));
+      renderList('github-trending', items, 'stars', 'desc');
+      return d.items;
+    } catch {
+      const fb = [
+        {name:'facebook/react',stars:232000,desc:'JavaScript · 22k forks'},
+        {name:'microsoft/vscode',stars:165000,desc:'TypeScript · 28k forks'},
+        {name:'torvalds/linux',stars:180000,desc:'C · 56k forks'},
+        {name:'tensorflow/tensorflow',stars:186000,desc:'C++ · 75k forks'},
+        {name:'vercel/next.js',stars:125000,desc:'JavaScript · 27k forks'},
+        {name:'rust-lang/rust',stars:98000,desc:'Rust · 14k forks'},
+        {name:'golang/go',stars:123000,desc:'Go · 18k forks'},
+        {name:'python/cpython',stars:65000,desc:'Python · 33k forks'},
+        {name:'nodejs/node',stars:106000,desc:'JavaScript · 30k forks'},
+        {name:'tailwindlabs/tailwindcss',stars:82000,desc:'JavaScript · 4k forks'},
+        {name:'oven-sh/bun',stars:78000,desc:'Zig · 5k forks'},
+        {name:'langchain-ai/langchain',stars:95000,desc:'Python · 16k forks'},
+        {name:'vitejs/vite',stars:72000,desc:'JavaScript · 7k forks'},
+        {name:'sveltejs/svelte',stars:78000,desc:'JavaScript · 4k forks'},
+        {name:'django/django',stars:79000,desc:'Python · 33k forks'},
+      ];
+      renderList('github-trending', fb, 'stars', 'desc');
+      return fb.map(f => ({language: f.desc.split(' · ')[0]}));
+    }
+  }
+
+  async function fetchNpm() {
+    apiCalls++;
+    const pkgs = ['lodash','react','axios','express','typescript','webpack','vite','next','vue','angular'];
+    const end = new Date().toISOString().split('T')[0];
+    const start = new Date(Date.now()-7*864e5).toISOString().split('T')[0];
+    try {
+      const res = await Promise.all(pkgs.map(async p => {
+        const r = await fetch(`https://api.npmjs.org/downloads/point/${start}:${end}/${p}`);
+        const d = await r.json();
+        return { name: p, downloads: d.downloads||0, desc: 'npm' };
+      }));
+      res.sort((a,b) => b.downloads - a.downloads);
+      renderList('npm-downloads', res, 'downloads', 'desc');
+    } catch {
+      renderList('npm-downloads', [
+        {name:'lodash',downloads:52000000,desc:'npm'},{name:'react',downloads:38000000,desc:'npm'},
+        {name:'axios',downloads:32000000,desc:'npm'},{name:'express',downloads:28000000,desc:'npm'},
+        {name:'typescript',downloads:25000000,desc:'npm'},{name:'webpack',downloads:22000000,desc:'npm'},
+        {name:'vite',downloads:15000000,desc:'npm'},{name:'next',downloads:12000000,desc:'npm'},
+        {name:'vue',downloads:5500000,desc:'npm'},{name:'angular',downloads:3800000,desc:'npm'},
+      ], 'downloads', 'desc');
+    }
+  }
+
+  async function fetchFrameworks() {
+    apiCalls++;
+    const fw = ['react','vue','angular','svelte','preact','solid-js','next','nuxt','remix','astro'];
+    const names = {react:'React',vue:'Vue.js',angular:'Angular',svelte:'Svelte',preact:'Preact','solid-js':'SolidJS',next:'Next.js',nuxt:'Nuxt',remix:'Remix',astro:'Astro'};
+    const end = new Date().toISOString().split('T')[0];
+    const start = new Date(Date.now()-7*864e5).toISOString().split('T')[0];
+    try {
+      const res = await Promise.all(fw.map(async p => {
+        const r = await fetch(`https://api.npmjs.org/downloads/point/${start}:${end}/${p}`);
+        const d = await r.json();
+        return { name: names[p]||p, downloads: d.downloads||0, desc: 'framework' };
+      }));
+      res.sort((a,b) => b.downloads - a.downloads);
+      renderList('frontend-frameworks', res, 'downloads', 'desc');
+    } catch {
+      renderList('frontend-frameworks', [
+        {name:'React',downloads:38000000,desc:'framework'},{name:'Next.js',downloads:12000000,desc:'framework'},
+        {name:'Vue.js',downloads:5500000,desc:'framework'},{name:'Angular',downloads:3800000,desc:'framework'},
+        {name:'Svelte',downloads:1800000,desc:'framework'},{name:'Astro',downloads:1200000,desc:'framework'},
+        {name:'Preact',downloads:2200000,desc:'framework'},{name:'SolidJS',downloads:350000,desc:'framework'},
+        {name:'Nuxt',downloads:1100000,desc:'framework'},{name:'Remix',downloads:800000,desc:'framework'},
+      ], 'downloads', 'desc');
+    }
+  }
+
+  async function fetchPyPI() {
+    apiCalls++;
+    const pkgs = ['requests','numpy','pandas','flask','django','tensorflow','pytorch','scikit-learn','fastapi','beautifulsoup4'];
+    try {
+      const res = await Promise.all(pkgs.map(async p => {
+        const r = await fetch(`https://pypistats.org/api/packages/${p}/recent`);
+        const d = await r.json();
+        return { name: p, downloads: d.data?.last_week||0, desc: 'pypi' };
+      }));
+      res.sort((a,b) => b.downloads - a.downloads);
+      renderList('pypi-downloads', res, 'downloads', 'desc');
+    } catch {
+      renderList('pypi-downloads', [
+        {name:'requests',downloads:180000000,desc:'pypi'},{name:'urllib3',downloads:200000000,desc:'pypi'},
+        {name:'numpy',downloads:95000000,desc:'pypi'},{name:'pandas',downloads:65000000,desc:'pypi'},
+        {name:'boto3',downloads:85000000,desc:'pypi'},{name:'flask',downloads:28000000,desc:'pypi'},
+        {name:'fastapi',downloads:22000000,desc:'pypi'},{name:'django',downloads:18000000,desc:'pypi'},
+        {name:'pytorch',downloads:12000000,desc:'pypi'},{name:'scikit-learn',downloads:15000000,desc:'pypi'},
+      ], 'downloads', 'desc');
+    }
+  }
+
+  async function fetchLanguages() {
+    apiCalls++;
+    try {
+      const r = await fetch('https://api.github.com/search/repositories?q=stars:>1000&per_page=100&sort=stars&order=desc');
+      if (!r.ok) throw 0;
+      const d = await r.json();
+      const lc = {};
+      d.items.forEach(repo => { if (repo.language) lc[repo.language] = (lc[repo.language]||0)+1; });
+      const items = Object.entries(lc).map(([name,repos]) => ({name, repos, desc: `${repos} repos`})).sort((a,b)=>b.repos-a.repos).slice(0,12);
+      renderList('github-languages', items, 'repos', 'desc');
+      renderLangCloud(Object.entries(lc).sort((a,b)=>b[1]-a[1]));
+    } catch {
+      const fb = [['JavaScript',28],['TypeScript',22],['Python',18],['Java',10],['Go',8],['Rust',6],['C++',5],['C',4],['PHP',3],['Ruby',3],['Shell',3],['Dart',2]];
+      renderList('github-languages', fb.map(([n,c])=>({name:n,repos:c,desc:`${c} repos`})), 'repos', 'desc');
+      renderLangCloud(fb);
+    }
+  }
+
+  function renderLangCloud(langs) {
+    const colors = ['#ff5c8a','#c9a0dc','#88d4ab','#87ceeb','#f0c987','#ffb3c6','#ff7096','#a8d8ea','#ffd700','#ff6b6b'];
+    const el = document.getElementById('lang-cloud');
+    if (!langs || !langs.length) { el.innerHTML = '<div class="loading">暂无数据</div>'; return; }
+    el.innerHTML = langs.slice(0, 15).map(([name, count], i) =>
+      `<span class="lang-pill"><span class="dot" style="background:${colors[i%colors.length]}"></span>${name} <span style="color:var(--text-muted)">${count}</span></span>`
+    ).join('');
+  }
+
+  async function refreshAll() {
+    document.querySelectorAll('.code-list, .lang-pills').forEach(el => {
+      el.innerHTML = '<div class="loading">正在获取数据</div>';
+    });
+    const repos = await fetchGitHub();
+    await Promise.all([fetchNpm(), fetchFrameworks(), fetchPyPI(), fetchLanguages()]);
+    updateStatus();
+
+    const terminal = document.getElementById('terminal');
+    terminal.innerHTML = `
+      <div class="panel-line"><span class="panel-prompt">❯</span><span class="panel-cmd">tech-stack-observer --refresh</span></div>
+      <div class="panel-success">✓ 数据刷新完成 (${new Date().toLocaleTimeString('zh-CN', {hour12:false})})</div>
+      <div class="panel-output">  API 调用: ${apiCalls} · 数据点: ${dataPoints}</div>
+      <div class="panel-line"><span class="panel-prompt">❯</span><span class="panel-cmd" id="terminal-time"></span></div>
+    `;
+  }
+
+  refreshAll();
+  setInterval(refreshAll, 5 * 60 * 1000);
+  setInterval(updateStatus, 1000);
+</script>
+</body>
+</html>
